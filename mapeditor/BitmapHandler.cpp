@@ -20,7 +20,7 @@
 #include <QImage>
 #include <QPixmap>
 
-namespace BitmapHandler
+namespace BitmapHandlerEditor
 {
 	QImage loadH3PCX(ui8 * data, size_t size);
 	
@@ -102,7 +102,7 @@ namespace BitmapHandler
 		
 		if(isPCX(readFile.first.get()))
 		{//H3-style PCX
-			auto image = BitmapHandler::loadH3PCX(readFile.first.get(), readFile.second);
+			auto image = BitmapHandlerEditor::loadH3PCX(readFile.first.get(), readFile.second);
 			if(!image.isNull())
 			{
 				if(image.bitPlaneCount() == 1 && setKey)

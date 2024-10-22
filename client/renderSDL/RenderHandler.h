@@ -46,7 +46,7 @@ class RenderHandler : public IRenderHandler
 
 	ImageLocator getLocatorForAnimationFrame(const AnimationPath & path, int frame, int group);
 
-	int getScalingFactor() const;
+	int getScalingFactor() const override;
 
 public:
 

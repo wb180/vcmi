@@ -40,19 +40,9 @@ void AbstractLayer::show(bool show)
 void AbstractLayer::redraw()
 {
 	if(item)
-	{
-		if(pixmap && isShown)
-			item->setPixmap(*pixmap);
-		else
-			item->setPixmap(emptyPixmap);
-	}
+		item->setPixmap(QPixmap::fromImage(scene->getSurface()));
 	else
-	{
-		if(pixmap && isShown)
-			item.reset(scene->addPixmap(*pixmap));
-		else
-			item.reset(scene->addPixmap(emptyPixmap));
-	}
+		item.reset(scene->addPixmap(QPixmap::fromImage(scene->getSurface())));
 }
 
 GridLayer::GridLayer(MapSceneBase * s): AbstractLayer(s)

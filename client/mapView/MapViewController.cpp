@@ -138,7 +138,7 @@ void MapViewController::modifyTileSize(int stepsChange, bool useDeadZone)
 }
 
 MapViewController::MapViewController(std::shared_ptr<MapViewModel> model, std::shared_ptr<MapViewCache> view)
-	: state(new MapRendererContextState())
+	: state(MapRendererContextState::createRendererContextState())
 	, model(std::move(model))
 	, view(view)
 {

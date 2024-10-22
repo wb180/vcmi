@@ -22,22 +22,14 @@
 #include "../../lib/mapObjects/CGHeroInstance.h"
 #include "../../lib/mapping/CMap.h"
 
-static bool compareObjectBlitOrder(ObjectInstanceID left, ObjectInstanceID right)
+static bool compareObjectBlitOrder(const CMap * map, ObjectInstanceID left, ObjectInstanceID right)
 {
-	//FIXME: remove mh access
-	return CGI->mh->compareObjectBlitOrder(CGI->mh->getMap()->objects[left.getNum()], CGI->mh->getMap()->objects[right.getNum()]);
+	return CMapHandler::compareObjectBlitOrder(map->objects[left.getNum()], map->objects[right.getNum()]);
 }
 
 MapRendererContextState::MapRendererContextState()
 {
-	auto mapSize = LOCPLINT->cb->getMapSize();
 
-	objects.resize(boost::extents[mapSize.z][mapSize.x][mapSize.y]);
-
-	logGlobal->debug("Loading map objects");
-	for(const auto & obj : CGI->mh->getMap()->objects)
-		addObject(obj);
-	logGlobal->debug("Done loading map objects");
 }
 
 void MapRendererContextState::addObject(const CGObjectInstance * obj)
@@ -51,12 +43,12 @@ void MapRendererContextState::addObject(const CGObjectInstance * obj)
 		{
 			int3 currTile(obj->anchorPos().x - fx, obj->anchorPos().y - fy, obj->anchorPos().z);
 
-			if(LOCPLINT->cb->isInTheMap(currTile) && obj->coveringAt(currTile))
+			if(isInTheMap(currTile) && obj->coveringAt(currTile))
 			{
 				auto & container = objects[currTile.z][currTile.x][currTile.y];
 
 				container.push_back(obj->id);
-				boost::range::sort(container, compareObjectBlitOrder);
+				boost::range::sort(container, std::bind(compareObjectBlitOrder, getMap(), std::placeholders::_1, std::placeholders::_2));
 			}
 		}
 	}
@@ -75,12 +67,12 @@ void MapRendererContextState::addMovingObject(const CGObjectInstance * object, c
 		{
 			int3 currTile(x, y, object->anchorPos().z);
 
-			if(LOCPLINT->cb->isInTheMap(currTile))
+			if(isInTheMap(currTile))
 			{
 				auto & container = objects[currTile.z][currTile.x][currTile.y];
 
 				container.push_back(object->id);
-				boost::range::sort(container, compareObjectBlitOrder);
+				boost::range::sort(container, std::bind(compareObjectBlitOrder, getMap(), std::placeholders::_1, std::placeholders::_2));
 			}
 		}
 	}
@@ -88,8 +80,45 @@ void MapRendererContextState::addMovingObject(const CGObjectInstance * object, c
 
 void MapRendererContextState::removeObject(const CGObjectInstance * object)
 {
-	for(int z = 0; z < LOCPLINT->cb->getMapSize().z; z++)
-		for(int x = 0; x < LOCPLINT->cb->getMapSize().x; x++)
-			for(int y = 0; y < LOCPLINT->cb->getMapSize().y; y++)
+	for(int z = 0; z < getMapSize().z; z++)
+		for(int x = 0; x < getMapSize().x; x++)
+			for(int y = 0; y < getMapSize().y; y++)
 				vstd::erase(objects[z][x][y], object->id);
+}
+
+void MapRendererContextState::init()
+{
+	auto mapSize = getMapSize();
+
+	objects.resize(boost::extents[mapSize.z][mapSize.x][mapSize.y]);
+
+	if(getMap())
+	{
+		logGlobal->debug("Loading map objects");
+		for(const auto & obj : getMap()->objects)
+			addObject(obj);
+		logGlobal->debug("Done loading map objects");
+	}
+}
+
+const CMap * MapRendererContextState::getMap() const
+{
+	return CGI->mh->getMap();
+}
+
+int3 MapRendererContextState::getMapSize() const
+{
+	return LOCPLINT->cb->getMapSize();
+}
+
+bool MapRendererContextState::isInTheMap(const int3 & coordinates) const
+{
+	return LOCPLINT->cb->isInTheMap(coordinates);
+}
+
+MapRendererContextState * MapRendererContextState::createRendererContextState()
+{
+	MapRendererContextState * state = new MapRendererContextState;
+	state->init();
+	return state;
 }

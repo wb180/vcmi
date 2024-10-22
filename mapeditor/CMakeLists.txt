@@ -10,6 +10,9 @@ set(editor_SRCS
 		generatorprogress.cpp
 		mapview.cpp
 		objectbrowser.cpp
+		renderhandler.cpp
+		mapeditorcontext.cpp
+		maprendercontextstate.cpp
 		mapsettings/abstractsettings.cpp
 		mapsettings/mapsettings.cpp
 		mapsettings/generalsettings.cpp
@@ -52,6 +55,9 @@ set(editor_HEADERS
 		generatorprogress.h
 		mapview.h
 		objectbrowser.h
+		renderhandler.h
+		maprendercontextstate.h
+		mapeditorcontext.h
 		mapsettings/abstractsettings.h
 		mapsettings/mapsettings.h
 		mapsettings/generalsettings.h
@@ -221,7 +227,7 @@ if(ENABLE_STATIC_LIBS OR NOT (ENABLE_EDITOR AND ENABLE_LAUNCHER))
 	target_compile_definitions(vcmieditor PRIVATE VCMIQT_STATIC)
 endif()
 
-target_link_libraries(vcmieditor vcmi vcmiqt Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
+target_link_libraries(vcmieditor vcmi vcmiqt vcmiclientcommon Qt${QT_VERSION_MAJOR}::Widgets Qt${QT_VERSION_MAJOR}::Network)
 target_include_directories(vcmieditor
 	PUBLIC	${CMAKE_CURRENT_SOURCE_DIR}
 )

@@ -18,6 +18,50 @@
 #include "../lib/mapping/CMap.h"
 #include "../lib/VCMI_Lib.h"
 
+#include "renderhandler.h"
+
+#include <QGlobalStatic>
+
+Q_GLOBAL_STATIC(RenderHandlerExt, renderHandler)
+
+#include "SDL2/SDL_surface.h"
+
+/*!
+ * Converts a QImage to an SDL_Surface.
+ * The source image is converted to ARGB32 format if it is not already.
+ * The caller is responsible for deallocating the returned pointer.
+ */
+SDL_Surface* QImage_toSDLSurface(const QImage &sourceImage)
+{
+	// Ensure that the source image is in the correct pixel format
+	QImage image = sourceImage;
+	if (image.format() != QImage::Format_ARGB32)
+		image = image.convertToFormat(QImage::Format_ARGB32);
+
+	// QImage stores each pixel in ARGB format
+	// Mask appropriately for the endianness
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+	Uint32 amask = 0x000000ff;
+	Uint32 rmask = 0x0000ff00;
+	Uint32 gmask = 0x00ff0000;
+	Uint32 bmask = 0xff000000;
+#else
+	Uint32 amask = 0xff000000;
+	Uint32 rmask = 0x00ff0000;
+	Uint32 gmask = 0x0000ff00;
+	Uint32 bmask = 0x000000ff;
+#endif
+
+	return SDL_CreateRGBSurfaceFrom((void*)image.constBits(),
+		image.width(), image.height(), image.depth(), image.bytesPerLine(),
+		rmask, gmask, bmask, amask);
+}
+
+namespace
+{
+	constexpr auto TILE_SIZE = 32;
+}
+
 
 MinimapView::MinimapView(QWidget * parent):
 	QGraphicsView(parent)
@@ -676,14 +720,22 @@ bool MapView::viewportEvent(QEvent *event)
 
 MapSceneBase::MapSceneBase(int lvl):
 	QGraphicsScene(nullptr),
+	map(nullptr),
 	level(lvl)
 {
 }
 
 void MapSceneBase::initialize(MapController & controller)
 {
+	map = controller.map();
+
 	for(auto * layer : getAbstractLayers())
 		layer->initialize(controller);
+}
+
+const QImage & MapSceneBase::getSurface() const
+{
+	return surface;
 }
 
 void MapSceneBase::updateViews()
@@ -702,10 +754,19 @@ MapScene::MapScene(int lvl):
 	selectionObjectsView(this),
 	objectPickerView(this),
 	isTerrainSelected(false),
-	isObjectSelected(false)
+	isObjectSelected(false),
+	rendererOverlay(*renderHandler),
+	state(MapRendererContextStateExt::createRendererContextState(map)),
+	context(*state)
 {
 	connect(&selectionTerrainView, &SelectionTerrainLayer::selectionMade, this, &MapScene::terrainSelected);
 	connect(&selectionObjectsView, &SelectionObjectsLayer::selectionMade, this, &MapScene::objectSelected);
+}
+
+MapScene::~MapScene()
+{
+	if(state)
+		delete state;
 }
 
 std::list<AbstractLayer *> MapScene::getAbstractLayers()
@@ -726,11 +787,32 @@ void MapScene::updateViews()
 {
 	MapSceneBase::updateViews();
 
+	auto canvas = Canvas::createFromSurface(QImage_toSDLSurface(surface), CanvasScalingPolicy::IGNORE);
+
+	for(int j = 0; j < map->height; ++j)
+	{
+		for(int i = 0; i < map->width; ++i)
+		{
+			auto tileCanvas = Canvas(canvas, Rect(i * TILE_SIZE, j * TILE_SIZE, TILE_SIZE, TILE_SIZE));
+			rendererOverlay.renderTile(context, tileCanvas, int3(i, j, level));
+		}
+	}	
+
+	surface.save(QString("Test_%1_%2_%3.png").arg(map->width).arg(map->height).arg(level));
+
+	gridView.show(true);
 	terrainView.show(true);
 	objectsView.show(true);
 	selectionTerrainView.show(true);
 	selectionObjectsView.show(true);
 	objectPickerView.show(true);
+}
+
+void MapScene::initialize(MapController & controller)
+{
+	MapSceneBase::initialize(controller);
+	state->setMap(controller.map());
+	surface = QImage(QSize(controller.map()->width, controller.map()->height) * TILE_SIZE, QImage::Format_ARGB32);
 }
 
 void MapScene::terrainSelected(bool anythingSelected)

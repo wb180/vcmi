@@ -165,8 +165,7 @@ void MainWindow::loadTranslation()
 
 MainWindow::MainWindow(QWidget* parent) :
 	QMainWindow(parent),
-	ui(new Ui::MainWindow),
-	controller(this)
+	ui(new Ui::MainWindow)
 {
 	// Set current working dir to executable folder.
 	// This is important on Mac for relative paths to work inside DMG.
@@ -186,6 +185,8 @@ MainWindow::MainWindow(QWidget* parent) :
 
 	//init
 	preinitDLL(::console, extractionOptions.extractArchives);
+
+	controller = std::make_unique<MapController>(this);
 
 	// Initialize logging based on settings
 	logConfig->configure();
@@ -245,20 +246,20 @@ MainWindow::MainWindow(QWidget* parent) :
 
 	init();
 
-	graphics = new Graphics(); // should be before curh->init()
-	graphics->load();//must be after Content loading but should be in main thread
+	graphicsEditor = new GraphicsEditor(); // should be before curh->init()
+	graphicsEditor->load();//must be after Content loading but should be in main thread
 
 	if (extractionOptions.extractArchives)
 		ResourceConverter::convertExtractedResourceFiles(extractionOptions.conversionOptions);
 	
-	ui->mapView->setScene(controller.scene(0));
-	ui->mapView->setController(&controller);
+	ui->mapView->setScene(controller->scene(0));
+	ui->mapView->setController(controller.get());
 	ui->mapView->setOptimizationFlags(QGraphicsView::DontSavePainterState | QGraphicsView::DontAdjustForAntialiasing);
 	connect(ui->mapView, &MapView::openObjectProperties, this, &MainWindow::loadInspector);
 	connect(ui->mapView, &MapView::currentCoordinates, this, &MainWindow::currentCoordinatesChanged);
 	
-	ui->minimapView->setScene(controller.miniScene(0));
-	ui->minimapView->setController(&controller);
+	ui->minimapView->setScene(controller->miniScene(0));
+	ui->minimapView->setController(controller.get());
 	connect(ui->minimapView, &MinimapView::cameraPositionChanged, ui->mapView, &MapView::cameraChanged);
 
 	scenePreview = new QGraphicsScene(this);
@@ -335,8 +336,8 @@ void MainWindow::initializeMap(bool isNew)
 	setTitle();
 
 	mapLevel = 0;
-	ui->mapView->setScene(controller.scene(mapLevel));
-	ui->minimapView->setScene(controller.miniScene(mapLevel));
+	ui->mapView->setScene(controller->scene(mapLevel));
+	ui->minimapView->setScene(controller->miniScene(mapLevel));
 	ui->minimapView->dimensions();
 	if(initialScale.isValid())
 		on_actionZoom_reset_triggered();
@@ -346,13 +347,13 @@ void MainWindow::initializeMap(bool isNew)
 	ui->actionMapSettings->setEnabled(true);
 	ui->actionPlayers_settings->setEnabled(true);
 	ui->actionTranslations->setEnabled(true);
-	ui->actionLevel->setEnabled(controller.map()->twoLevel);
+	ui->actionLevel->setEnabled(controller->map()->twoLevel);
 	
 	//set minimal players count
 	if(isNew)
 	{
-		controller.map()->players[0].canComputerPlay = true;
-		controller.map()->players[0].canHumanPlay = true;
+		controller->map()->players[0].canComputerPlay = true;
+		controller->map()->players[0].canHumanPlay = true;
 	}
 	
 	onPlayersChanged();
@@ -395,7 +396,7 @@ bool MainWindow::openMap(const QString & filenameSelect)
 {
 	try
 	{
-		controller.setMap(openMapInternal(filenameSelect));
+		controller->setMap(openMapInternal(filenameSelect));
 	}
 	catch(const ModIncompatibility & e)
 	{
@@ -410,7 +411,7 @@ bool MainWindow::openMap(const QString & filenameSelect)
 	}
 	
 	filename = filenameSelect;
-	initializeMap(controller.map()->version != EMapFormat::VCMI);
+	initializeMap(controller->map()->version != EMapFormat::VCMI);
 	return true;
 }
 
@@ -430,14 +431,14 @@ void MainWindow::on_actionOpen_triggered()
 
 void MainWindow::saveMap()
 {
-	if(!controller.map())
+	if(!controller->map())
 		return;
 
 	if(!unsaved)
 		return;
 	
 	//validate map
-	auto issues = Validator::validate(controller.map());
+	auto issues = Validator::validate(controller->map());
 	bool critical = false;
 	for(auto & issue : issues)
 		critical |= issue.critical;
@@ -450,16 +451,16 @@ void MainWindow::saveMap()
 			QMessageBox::information(this, "Map validation", "Map has some errors. Open Validator from the Map menu to see issues found");
 	}
 	
-	Translations::cleanupRemovedItems(*controller.map());
+	Translations::cleanupRemovedItems(*controller->map());
 
-	for(auto obj : controller.map()->objects)
+	for(auto obj : controller->map()->objects)
 	{
 		if(obj->ID == Obj::HERO_PLACEHOLDER)
 		{
 			auto hero = dynamic_cast<CGHeroPlaceholder *>(obj.get());
 			if(hero->heroType.has_value())
 			{
-				controller.map()->reservedCampaignHeroes.insert(hero->heroType.value());
+				controller->map()->reservedCampaignHeroes.insert(hero->heroType.value());
 			}
 		}
 	}
@@ -467,7 +468,7 @@ void MainWindow::saveMap()
 	CMapService mapService;
 	try
 	{
-		mapService.saveMap(controller.getMapUniquePtr(), filename.toStdString());
+		mapService.saveMap(controller->getMapUniquePtr(), filename.toStdString());
 	}
 	catch(const std::exception & e)
 	{
@@ -481,7 +482,7 @@ void MainWindow::saveMap()
 
 void MainWindow::on_actionSave_as_triggered()
 {
-	if(!controller.map())
+	if(!controller->map())
 		return;
 
 	auto filenameSelect = QFileDialog::getSaveFileName(this, tr("Save map"), lastSavingDir, tr("VCMI maps (*.vmap)"));
@@ -509,7 +510,7 @@ void MainWindow::on_actionNew_triggered()
 
 void MainWindow::on_actionSave_triggered()
 {
-	if(!controller.map())
+	if(!controller->map())
 		return;
 
 	if(filename.isNull())
@@ -525,12 +526,12 @@ void MainWindow::currentCoordinatesChanged(int x, int y)
 
 void MainWindow::terrainButtonClicked(TerrainId terrain)
 {
-	controller.commitTerrainChange(mapLevel, terrain);
+	controller->commitTerrainChange(mapLevel, terrain);
 }
 
 void MainWindow::roadOrRiverButtonClicked(ui8 type, bool isRoad)
 {
-	controller.commitRoadOrRiverChange(mapLevel, type, isRoad);
+	controller->commitRoadOrRiverChange(mapLevel, type, isRoad);
 }
 
 void MainWindow::addGroupIntoCatalog(const std::string & groupName, bool staticOnly)
@@ -824,11 +825,11 @@ void MainWindow::loadObjectsTree()
 
 void MainWindow::on_actionLevel_triggered()
 {
-	if(controller.map() && controller.map()->twoLevel)
+	if(controller->map() && controller->map()->twoLevel)
 	{
 		mapLevel = mapLevel ? 0 : 1;
-		ui->mapView->setScene(controller.scene(mapLevel));
-		ui->minimapView->setScene(controller.miniScene(mapLevel));
+		ui->mapView->setScene(controller->scene(mapLevel));
+		ui->minimapView->setScene(controller->miniScene(mapLevel));
 		if (mapLevel == 0)
 		{
 			ui->actionLevel->setToolTip(tr("View underground"));
@@ -845,9 +846,9 @@ void MainWindow::on_actionUndo_triggered()
 	QString str("Undo clicked");
 	statusBar()->showMessage(str, 1000);
 
-	if (controller.map())
+	if (controller->map())
 	{
-		controller.undo();
+		controller->undo();
 	}
 }
 
@@ -856,9 +857,9 @@ void MainWindow::on_actionRedo_triggered()
 	QString str("Redo clicked");
 	displayStatus(str);
 
-	if (controller.map())
+	if (controller->map())
 	{
-		controller.redo();
+		controller->redo();
 	}
 }
 
@@ -867,10 +868,10 @@ void MainWindow::on_actionPass_triggered(bool checked)
 	QString str("Passability clicked");
 	displayStatus(str);
 
-	if(controller.map())
+	if(controller->map())
 	{
-		controller.scene(0)->passabilityView.show(checked);
-		controller.scene(1)->passabilityView.show(checked);
+		controller->scene(0)->passabilityView.show(checked);
+		controller->scene(1)->passabilityView.show(checked);
 	}
 }
 
@@ -880,10 +881,10 @@ void MainWindow::on_actionGrid_triggered(bool checked)
 	QString str("Grid clicked");
 	displayStatus(str);
 
-	if(controller.map())
+	if(controller->map())
 	{
-		controller.scene(0)->gridView.show(checked);
-		controller.scene(1)->gridView.show(checked);
+		controller->scene(0)->gridView.show(checked);
+		controller->scene(1)->gridView.show(checked);
 	}
 }
 
@@ -894,9 +895,9 @@ void MainWindow::changeBrushState(int idx)
 
 void MainWindow::on_actionErase_triggered()
 {
-	if(controller.map())
+	if(controller->map())
 	{
-		controller.commitObjectErase(mapLevel);
+		controller->commitObjectErase(mapLevel);
 	}
 }
 
@@ -961,17 +962,17 @@ void MainWindow::on_actionFill_triggered()
 	QString str("Fill clicked");
 	displayStatus(str);
 
-	if(!controller.map())
+	if(!controller->map())
 		return;
 
-	controller.commitObstacleFill(mapLevel);
+	controller->commitObstacleFill(mapLevel);
 }
 
 void MainWindow::loadInspector(CGObjectInstance * obj, bool switchTab)
 {
 	if(switchTab)
 		ui->tabWidget->setCurrentIndex(1);
-	Inspector inspector(controller, obj, ui->inspectorWidget);
+	Inspector inspector(*controller, obj, ui->inspectorWidget);
 	inspector.updateProperties();
 }
 
@@ -995,14 +996,14 @@ void MainWindow::on_inspectorWidget_itemChanged(QTableWidgetItem *item)
 	auto param = tableWidget->item(r, c - 1)->text();
 
 	//set parameter
-	Inspector inspector(controller, obj, tableWidget);
+	Inspector inspector(*controller, obj, tableWidget);
 	inspector.setProperty(param, item);
-	controller.commitObjectChange(mapLevel);
+	controller->commitObjectChange(mapLevel);
 }
 
 void MainWindow::on_actionMapSettings_triggered()
 {
-	auto settingsDialog = new MapSettings(controller, this);
+	auto settingsDialog = new MapSettings(*controller, this);
 	settingsDialog->setWindowModality(Qt::WindowModal);
 	settingsDialog->setModal(true);
 }
@@ -1010,7 +1011,7 @@ void MainWindow::on_actionMapSettings_triggered()
 
 void MainWindow::on_actionPlayers_settings_triggered()
 {
-	auto settingsDialog = new PlayerSettings(controller, this);
+	auto settingsDialog = new PlayerSettings(*controller, this);
 	settingsDialog->setWindowModality(Qt::WindowModal);
 	settingsDialog->setModal(true);
 	connect(settingsDialog, &QDialog::finished, this, &MainWindow::onPlayersChanged);
@@ -1031,7 +1032,7 @@ QAction * MainWindow::getActionPlayer(const PlayerColor & player)
 
 void MainWindow::switchDefaultPlayer(const PlayerColor & player)
 {
-	if(controller.defaultPlayer == player)
+	if(controller->defaultPlayer == player)
 		return;
 	
 	ui->actionNeutral->blockSignals(true);
@@ -1043,17 +1044,17 @@ void MainWindow::switchDefaultPlayer(const PlayerColor & player)
 		getActionPlayer(PlayerColor(i))->setChecked(PlayerColor(i) == player);
 		getActionPlayer(PlayerColor(i))->blockSignals(false);
 	}
-	controller.defaultPlayer = player;
+	controller->defaultPlayer = player;
 }
 
 void MainWindow::onPlayersChanged()
 {
-	if(controller.map())
+	if(controller->map())
 	{
 		getActionPlayer(PlayerColor::NEUTRAL)->setEnabled(true);
-		for(int i = 0; i < controller.map()->players.size(); ++i)
-			getActionPlayer(PlayerColor(i))->setEnabled(controller.map()->players.at(i).canAnyonePlay());
-		if(!getActionPlayer(controller.defaultPlayer)->isEnabled() || controller.defaultPlayer == PlayerColor::NEUTRAL)
+		for(int i = 0; i < controller->map()->players.size(); ++i)
+			getActionPlayer(PlayerColor(i))->setEnabled(controller->map()->players.at(i).canAnyonePlay());
+		if(!getActionPlayer(controller->defaultPlayer)->isEnabled() || controller->defaultPlayer == PlayerColor::NEUTRAL)
 			switchDefaultPlayer(PlayerColor::NEUTRAL);
 	}
 	else
@@ -1091,16 +1092,16 @@ void MainWindow::displayStatus(const QString& message, int timeout /* = 2000 */)
 
 void MainWindow::on_actionValidate_triggered()
 {
-	new Validator(controller.map(), this);
+	new Validator(controller->map(), this);
 }
 
 
 void MainWindow::on_actionUpdate_appearance_triggered()
 {
-	if(!controller.map())
+	if(!controller->map())
 		return;
 	
-	if(controller.scene(mapLevel)->selectionObjectsView.getSelection().empty())
+	if(controller->scene(mapLevel)->selectionObjectsView.getSelection().empty())
 	{
 		QMessageBox::information(this, tr("Update appearance"), tr("No objects selected"));
 		return;
@@ -1109,32 +1110,32 @@ void MainWindow::on_actionUpdate_appearance_triggered()
 	if(QMessageBox::Yes != QMessageBox::question(this, tr("Update appearance"), tr("This operation is irreversible. Do you want to continue?")))
 		return;
 	
-	controller.scene(mapLevel)->selectionTerrainView.clear();
+	controller->scene(mapLevel)->selectionTerrainView.clear();
 	
 	int errors = 0;
 	std::set<CGObjectInstance*> staticObjects;
-	for(auto * obj : controller.scene(mapLevel)->selectionObjectsView.getSelection())
+	for(auto * obj : controller->scene(mapLevel)->selectionObjectsView.getSelection())
 	{
 		auto handler = VLC->objtypeh->getHandlerFor(obj->ID, obj->subID);
-		if(!controller.map()->isInTheMap(obj->visitablePos()))
+		if(!controller->map()->isInTheMap(obj->visitablePos()))
 		{
 			++errors;
 			continue;
 		}
 		
-		auto * terrain = controller.map()->getTile(obj->visitablePos()).terType;
+		auto * terrain = controller->map()->getTile(obj->visitablePos()).terType;
 		
 		if(handler->isStaticObject())
 		{
 			staticObjects.insert(obj);
 			if(obj->appearance->canBePlacedAt(terrain->getId()))
 			{
-				controller.scene(mapLevel)->selectionObjectsView.deselectObject(obj);
+				controller->scene(mapLevel)->selectionObjectsView.deselectObject(obj);
 				continue;
 			}
 			
 			for(auto & offset : obj->appearance->getBlockedOffsets())
-				controller.scene(mapLevel)->selectionTerrainView.select(obj->pos + offset);
+				controller->scene(mapLevel)->selectionTerrainView.select(obj->pos + offset);
 		}
 		else
 		{
@@ -1153,13 +1154,13 @@ void MainWindow::on_actionUpdate_appearance_triggered()
 				app = templates.front();
 			}
 			obj->appearance = app;
-			controller.mapHandler()->invalidate(obj);
-			controller.scene(mapLevel)->selectionObjectsView.deselectObject(obj);
+			controller->mapHandler()->invalidate(obj);
+			controller->scene(mapLevel)->selectionObjectsView.deselectObject(obj);
 		}
 	}
-	controller.commitObjectChange(mapLevel);
-	controller.commitObjectErase(mapLevel);
-	controller.commitObstacleFill(mapLevel);
+	controller->commitObjectChange(mapLevel);
+	controller->commitObjectErase(mapLevel);
+	controller->commitObstacleFill(mapLevel);
 	
 	
 	if(errors)
@@ -1175,28 +1176,28 @@ void MainWindow::on_actionRecreate_obstacles_triggered()
 
 void MainWindow::on_actionCut_triggered()
 {
-	if(controller.map())
+	if(controller->map())
 	{
-		controller.copyToClipboard(mapLevel);
-		controller.commitObjectErase(mapLevel);
+		controller->copyToClipboard(mapLevel);
+		controller->commitObjectErase(mapLevel);
 	}
 }
 
 
 void MainWindow::on_actionCopy_triggered()
 {
-	if(controller.map())
+	if(controller->map())
 	{
-		controller.copyToClipboard(mapLevel);
+		controller->copyToClipboard(mapLevel);
 	}
 }
 
 
 void MainWindow::on_actionPaste_triggered()
 {
-	if(controller.map())
+	if(controller->map())
 	{
-		controller.pasteFromClipboard(mapLevel);
+		controller->pasteFromClipboard(mapLevel);
 	}
 }
 
@@ -1216,7 +1217,7 @@ void MainWindow::on_actionExport_triggered()
 
 void MainWindow::on_actionTranslations_triggered()
 {
-	auto translationsDialog = new Translations(*controller.map(), this);
+	auto translationsDialog = new Translations(*controller->map(), this);
 	translationsDialog->show();
 }
 
@@ -1238,7 +1239,7 @@ void MainWindow::on_actionh3m_converter_triggered()
 		{
 			CMapService mapService;
 			auto map = openMapInternal(m);
-			controller.repairMap(map.get());
+			controller->repairMap(map.get());
 			mapService.saveMap(map, (saveDirectory + '/' + QFileInfo(m).completeBaseName() + ".vmap").toStdString());
 		}
 		QMessageBox::information(this, tr("Operation completed"), tr("Successfully converted %1 maps").arg(mapFiles.size()));
@@ -1252,39 +1253,39 @@ void MainWindow::on_actionh3m_converter_triggered()
 
 void MainWindow::on_actionLock_triggered()
 {
-	if(controller.map())
+	if(controller->map())
 	{
-		if(controller.scene(mapLevel)->selectionObjectsView.getSelection().empty())
+		if(controller->scene(mapLevel)->selectionObjectsView.getSelection().empty())
 		{
-			for(auto obj : controller.map()->objects)
+			for(auto obj : controller->map()->objects)
 			{
-				controller.scene(mapLevel)->selectionObjectsView.setLockObject(obj, true);
-				controller.scene(mapLevel)->objectsView.setLockObject(obj, true);
+				controller->scene(mapLevel)->selectionObjectsView.setLockObject(obj, true);
+				controller->scene(mapLevel)->objectsView.setLockObject(obj, true);
 			}
 		}
 		else
 		{
-			for(auto * obj : controller.scene(mapLevel)->selectionObjectsView.getSelection())
+			for(auto * obj : controller->scene(mapLevel)->selectionObjectsView.getSelection())
 			{
-				controller.scene(mapLevel)->selectionObjectsView.setLockObject(obj, true);
-				controller.scene(mapLevel)->objectsView.setLockObject(obj, true);
+				controller->scene(mapLevel)->selectionObjectsView.setLockObject(obj, true);
+				controller->scene(mapLevel)->objectsView.setLockObject(obj, true);
 			}
-			controller.scene(mapLevel)->selectionObjectsView.clear();
+			controller->scene(mapLevel)->selectionObjectsView.clear();
 		}
-		controller.scene(mapLevel)->objectsView.update();
-		controller.scene(mapLevel)->selectionObjectsView.update();
+		controller->scene(mapLevel)->objectsView.update();
+		controller->scene(mapLevel)->selectionObjectsView.update();
 	}
 }
 
 
 void MainWindow::on_actionUnlock_triggered()
 {
-	if(controller.map())
+	if(controller->map())
 	{
-		controller.scene(mapLevel)->selectionObjectsView.unlockAll();
-		controller.scene(mapLevel)->objectsView.unlockAll();
+		controller->scene(mapLevel)->selectionObjectsView.unlockAll();
+		controller->scene(mapLevel)->objectsView.unlockAll();
 	}
-	controller.scene(mapLevel)->objectsView.update();
+	controller->scene(mapLevel)->objectsView.update();
 }
 
 

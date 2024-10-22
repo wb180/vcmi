@@ -575,6 +575,15 @@ MapRendererOverlay::MapRendererOverlay()
 
 }
 
+MapRendererOverlay::MapRendererOverlay(IRenderHandler & handler)
+	: imageGrid(handler.loadImage(ImagePath::builtin("debug/grid"), EImageBlitMode::ALPHA))
+	, imageBlocked(handler.loadImage(ImagePath::builtin("debug/blocked"), EImageBlitMode::ALPHA))
+	, imageVisitable(handler.loadImage(ImagePath::builtin("debug/visitable"), EImageBlitMode::ALPHA))
+	, imageSpellRange(handler.loadImage(ImagePath::builtin("debug/spellRange"), EImageBlitMode::ALPHA))
+{
+
+}
+
 void MapRendererOverlay::renderTile(IMapRendererContext & context, Canvas & target, const int3 & coordinates)
 {
 	if(context.showGrid())

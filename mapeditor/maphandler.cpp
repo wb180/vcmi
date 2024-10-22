@@ -161,9 +161,9 @@ void setPlayerColor(QImage * sur, PlayerColor player)
 		return;
 	if(sur->format() == QImage::Format_Indexed8)
 	{
-		QRgb color = graphics->neutralColor;
+		QRgb color = graphicsEditor->neutralColor;
 		if(player != PlayerColor::NEUTRAL && player < PlayerColor::PLAYER_LIMIT)
-			color = graphics->playerColors.at(player.getNum());
+			color = graphicsEditor->playerColors.at(player.getNum());
 
 		sur->setColor(5, color);
 	}
@@ -180,7 +180,7 @@ std::shared_ptr<QImage> MapHandler::getObjectImage(const CGObjectInstance * obj)
 		return nullptr;
 	}
 	
-	std::shared_ptr<Animation> animation = graphics->getAnimation(obj);
+	std::shared_ptr<Animation> animation = graphicsEditor->getAnimation(obj);
 	
 	//no animation at all
 	if(!animation)
@@ -309,7 +309,7 @@ std::shared_ptr<QImage> MapHandler::findFlagBitmap(const CGHeroInstance * hero, 
 	if(!hero || hero->boat)
 		return std::shared_ptr<QImage>();
 	
-	return findFlagBitmapInternal(graphics->heroFlagAnimations.at(color.getNum()), anim, group, hero->moveDir, true);
+	return findFlagBitmapInternal(graphicsEditor->heroFlagAnimations.at(color.getNum()), anim, group, hero->moveDir, true);
 }
 
 std::shared_ptr<QImage> MapHandler::findFlagBitmapInternal(std::shared_ptr<Animation> animation, int anim, int group, ui8 dir, bool moving) const
@@ -330,7 +330,7 @@ MapHandler::BitmapHolder MapHandler::findObjectBitmap(const CGObjectInstance * o
 		return MapHandler::BitmapHolder();
 
 	// normal object
-	std::shared_ptr<Animation> animation = graphics->getAnimation(obj);
+	std::shared_ptr<Animation> animation = graphicsEditor->getAnimation(obj);
 	size_t groupSize = animation->size(group);
 	if(groupSize == 0)
 		return MapHandler::BitmapHolder();
@@ -431,10 +431,10 @@ QRgb MapHandler::getTileColor(int x, int y, int z)
 		
 		PlayerColor player = object.obj->getOwner();
 		if(player == PlayerColor::NEUTRAL)
-			return graphics->neutralColor;
+			return graphicsEditor->neutralColor;
 		else
 			if (player.isValidPlayer())
-				return graphics->playerColors[player.getNum()];
+				return graphicsEditor->playerColors[player.getNum()];
 	}
 	
 	// else - use terrain color (blocked version or normal)

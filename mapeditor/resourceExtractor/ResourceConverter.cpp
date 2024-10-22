@@ -51,7 +51,7 @@ void ResourceConverter::doConvertPcxToPng(const boost::filesystem::path & source
 
 			if(boost::algorithm::to_lower_copy(filename.extension().string()) == ".pcx")
 			{
-				auto img = BitmapHandler::loadBitmap(filenameLowerCase);
+				auto img = BitmapHandlerEditor::loadBitmap(filenameLowerCase);
 				boost::filesystem::path pngFilePath = sourceFolder / (fileStem + ".png");
 				img.save(pathToQString(pngFilePath), "PNG");
 

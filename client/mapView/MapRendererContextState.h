@@ -15,6 +15,7 @@
 VCMI_LIB_NAMESPACE_BEGIN
 struct ObjectPosInfo;
 class CGObjectInstance;
+class CMap;
 VCMI_LIB_NAMESPACE_END
 
 class IMapRendererContext;
@@ -46,17 +47,30 @@ enum class EWorldViewIcon
 	ICONS_TOTAL = 19 * 9 // 8 players + neutral set at the end
 };
 
+
+
 struct MapRendererContextState
 {
 public:
-	MapRendererContextState();
+	static MapRendererContextState * createRendererContextState();
 
 	using MapObject = ObjectInstanceID;
 	using MapObjectsList = std::vector<MapObject>;
+
+	virtual ~MapRendererContextState() = default;
 
 	boost::multi_array<MapObjectsList, 3> objects;
 
 	void addObject(const CGObjectInstance * object);
 	void addMovingObject(const CGObjectInstance * object, const int3 & tileFrom, const int3 & tileDest);
 	void removeObject(const CGObjectInstance * object);
+
+	virtual void init();
+
+	virtual const CMap * getMap() const;
+	virtual int3 getMapSize() const;
+	virtual bool isInTheMap(const int3 & coordinates) const;
+
+protected:
+	MapRendererContextState();
 };

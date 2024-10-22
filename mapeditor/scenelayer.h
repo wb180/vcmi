@@ -12,6 +12,8 @@
 
 #include "../lib/int3.h"
 
+#include "../client/mapView/MapRenderer.h"
+
 class MapSceneBase;
 class MapScene;
 class MapController;

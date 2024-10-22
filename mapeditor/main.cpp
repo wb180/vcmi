@@ -11,6 +11,9 @@
 #include <QApplication>
 #include "mainwindow.h"
 
+#include "../client/CMT.h"
+#include "../client/gui/CGuiHandler.cpp"
+
 int main(int argc, char * argv[])
 {
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -20,4 +23,15 @@ int main(int argc, char * argv[])
 	QApplication vcmieditor(argc, argv);
 	MainWindow mainWindow;
 	return vcmieditor.exec();
+}
+
+void handleQuit(bool ask)
+{
+	qApp->exit();
+}
+
+[[noreturn]] void handleFatalError(const std::string & message, bool terminate)
+{
+	qApp->quit();
+	std::exit(0);
 }

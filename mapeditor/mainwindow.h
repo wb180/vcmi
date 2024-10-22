@@ -52,7 +52,7 @@ public:
 
 	int getMapLevel() const {return mapLevel;}
 	
-	MapController controller;
+	std::unique_ptr<MapController> controller;
 
 	void loadTranslation();
 

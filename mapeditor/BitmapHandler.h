@@ -11,7 +11,7 @@
 
 #include <QImage>
 
-namespace BitmapHandler
+namespace BitmapHandlerEditor
 {
 	//Load file from /DATA or /SPRITES
 	QImage loadBitmap(const std::string & fname, bool setKey = true);

@@ -199,7 +199,7 @@ void WindowNewMap::on_cancelButton_clicked()
 
 void generateRandomMap(CMapGenerator & gen, MainWindow * window)
 {
-	window->controller.setMap(gen.generate());
+	window->controller->setMap(gen.generate());
 }
 
 std::unique_ptr<CMap> generateEmptyMap(CMapGenOptions & options)
@@ -283,7 +283,7 @@ void WindowNewMap::on_okButton_clicked()
 	}
 	
 	nmap->mods = MapController::modAssessmentAll();
-	static_cast<MainWindow*>(parent())->controller.setMap(std::move(nmap));
+	static_cast<MainWindow*>(parent())->controller->setMap(std::move(nmap));
 	static_cast<MainWindow*>(parent())->initializeMap(true);
 	close();
 }

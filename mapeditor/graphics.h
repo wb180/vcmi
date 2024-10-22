@@ -31,7 +31,7 @@ struct InfoAboutTown;
 class Animation;
 
 /// Handles fonts, hero images, town images, various graphics
-class Graphics
+class GraphicsEditor
 {
 	void addImageListEntry(size_t index, size_t group, const std::string & listName, const std::string & imageName);
 	
@@ -76,8 +76,8 @@ public:
 	std::map<std::string, JsonNode> imageLists;
 		
 	//functions
-	Graphics();
-	~Graphics();
+	GraphicsEditor();
+	~GraphicsEditor();
 	
 	void load();
 	
@@ -88,4 +88,4 @@ public:
 	std::shared_ptr<Animation> getHeroAnimation(const std::shared_ptr<const ObjectTemplate> info);
 };
 
-extern Graphics * graphics;
+extern GraphicsEditor * graphicsEditor;

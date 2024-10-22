@@ -538,7 +538,7 @@ bool Animation::loadFrame(size_t frame, size_t group)
 		auto img = getFromExtraDef(source[group][frame]["file"].String());
 		if(!img)
 		{
-			auto bitmap = BitmapHandler::loadBitmap(source[group][frame]["file"].String());
+			auto bitmap = BitmapHandlerEditor::loadBitmap(source[group][frame]["file"].String());
 			img.reset(new QImage(bitmap));
 		}
 
@@ -574,8 +574,8 @@ void Animation::init()
 
 	JsonPath resID = JsonPath::builtin("SPRITES/" + name);
 
-	if(vstd::contains(graphics->imageLists, resID.getName()))
-		initFromJson(graphics->imageLists[resID.getName()]);
+	if(vstd::contains(graphicsEditor->imageLists, resID.getName()))
+		initFromJson(graphicsEditor->imageLists[resID.getName()]);
 
 	auto configList = CResourceHandler::get()->getResourcesWithName(resID);
 

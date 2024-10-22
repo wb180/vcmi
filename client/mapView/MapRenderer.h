@@ -24,6 +24,7 @@ class IImage;
 class Canvas;
 class IMapRendererContext;
 enum class EImageBlitMode : uint8_t;
+class IRenderHandler;
 
 class MapTileStorage
 {
@@ -138,6 +139,7 @@ class MapRendererOverlay
 	std::shared_ptr<IImage> imageSpellRange;
 public:
 	MapRendererOverlay();
+	explicit MapRendererOverlay(IRenderHandler & handler);
 
 	uint8_t checksum(IMapRendererContext & context, const int3 & coordinates);
 	void renderTile(IMapRendererContext & context, Canvas & target, const int3 & coordinates);

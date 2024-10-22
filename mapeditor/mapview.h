@@ -16,6 +16,11 @@
 #include "../lib/int3.h"
 
 
+#include "mapeditorcontext.h"
+#include "maprendercontextstate.h"
+
+#include "../client/render/Canvas.h"
+
 VCMI_LIB_NAMESPACE_BEGIN
 class CGObjectInstance;
 VCMI_LIB_NAMESPACE_END
@@ -34,8 +39,13 @@ public:
 	virtual void updateViews();
 	virtual void initialize(MapController &);
 	
+	const QImage & getSurface() const;
+
 protected:
 	virtual std::list<AbstractLayer *> getAbstractLayers() = 0;
+
+	QImage surface;
+	CMap * map;
 };
 
 class MinimapScene : public MapSceneBase
@@ -57,8 +67,10 @@ class MapScene : public MapSceneBase
 	Q_OBJECT
 public:
 	MapScene(int lvl);
+	virtual ~MapScene();
 	
 	void updateViews() override;
+	virtual void initialize(MapController & controller) override;
 	
 	GridLayer gridView;
 	PassabilityLayer passabilityView;
@@ -67,6 +79,11 @@ public:
 	ObjectsLayer objectsView;
 	SelectionObjectsLayer selectionObjectsView;
 	ObjectPickerLayer objectPickerView;
+
+	MapRendererOverlay rendererOverlay;
+
+	MapRendererContextStateExt * state;
+	MapEditorContext context;	
 
 signals:
 	void selected(bool anything);
@@ -80,7 +97,6 @@ protected:
 
 	bool isTerrainSelected;
 	bool isObjectSelected;
-
 };
 
 class MapView : public QGraphicsView

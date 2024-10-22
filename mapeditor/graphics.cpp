@@ -35,9 +35,9 @@
 #include "../lib/mapObjects/CGObjectInstance.h"
 #include "../lib/mapObjects/ObjectTemplate.h"
 
-Graphics * graphics = nullptr;
+GraphicsEditor * graphicsEditor = nullptr;
 
-void Graphics::loadPaletteAndColors()
+void GraphicsEditor::loadPaletteAndColors()
 {
 	auto textFile = CResourceHandler::get()->load(ResourcePath("DATA/PLAYERS.PAL"))->readAll();
 	std::string pals((char*)textFile.first.get(), textFile.second);
@@ -92,7 +92,7 @@ void Graphics::loadPaletteAndColors()
 	neutralColor = qRgba(0x84, 0x84, 0x84, 0xFF);
 }
 
-Graphics::Graphics()
+GraphicsEditor::GraphicsEditor()
 {
 #if 0
 	std::vector<Task> tasks; //preparing list of graphics to load
@@ -112,17 +112,17 @@ Graphics::Graphics()
 	//(!) do not load any CAnimation here
 }
 
-Graphics::~Graphics()
+GraphicsEditor::~GraphicsEditor()
 {
 }
 
-void Graphics::load()
+void GraphicsEditor::load()
 {
 	loadHeroAnimations();
 	loadHeroFlagAnimations();
 }
 
-void Graphics::loadHeroAnimations()
+void GraphicsEditor::loadHeroAnimations()
 {
 	for(const auto & elem : VLC->heroclassesh->objects)
 	{
@@ -142,7 +142,7 @@ void Graphics::loadHeroAnimations()
 	mapObjectAnimations["AB02_.DEF"] = boatAnimations[1];
 	mapObjectAnimations["AB03_.DEF"] = boatAnimations[2];
 }
-void Graphics::loadHeroFlagAnimations()
+void GraphicsEditor::loadHeroFlagAnimations()
 {
 	static const std::vector<std::string> HERO_FLAG_ANIMATIONS =
 	{
@@ -174,7 +174,7 @@ void Graphics::loadHeroFlagAnimations()
 			boatFlagAnimations[i].push_back(loadHeroFlagAnimation(name));
 }
 
-std::shared_ptr<Animation> Graphics::loadHeroFlagAnimation(const std::string & name)
+std::shared_ptr<Animation> GraphicsEditor::loadHeroFlagAnimation(const std::string & name)
 {
 	//first - group number to be rotated, second - group number after rotation
 	static const std::vector<std::pair<int,int> > rotations =
@@ -197,7 +197,7 @@ std::shared_ptr<Animation> Graphics::loadHeroFlagAnimation(const std::string & n
 	return anim;
 }
 
-std::shared_ptr<Animation> Graphics::loadHeroAnimation(const std::string &name)
+std::shared_ptr<Animation> GraphicsEditor::loadHeroAnimation(const std::string &name)
 {
 	//first - group number to be rotated, second - group number after rotation
 	static const std::vector<std::pair<int,int> > rotations =
@@ -221,7 +221,7 @@ std::shared_ptr<Animation> Graphics::loadHeroAnimation(const std::string &name)
 	return anim;
 }
 
-void Graphics::blueToPlayersAdv(QImage * sur, PlayerColor player)
+void GraphicsEditor::blueToPlayersAdv(QImage * sur, PlayerColor player)
 {
 	if(sur->format() == QImage::Format_Indexed8)
 	{
@@ -254,14 +254,14 @@ void Graphics::blueToPlayersAdv(QImage * sur, PlayerColor player)
 	}
 }
 
-std::shared_ptr<Animation> Graphics::getAnimation(const CGObjectInstance* obj)
+std::shared_ptr<Animation> GraphicsEditor::getAnimation(const CGObjectInstance* obj)
 {
 	if(obj->ID == Obj::HERO)
 		return getHeroAnimation(obj->appearance);
 	return getAnimation(obj->appearance);
 }
 
-std::shared_ptr<Animation> Graphics::getHeroAnimation(const std::shared_ptr<const ObjectTemplate> info)
+std::shared_ptr<Animation> GraphicsEditor::getHeroAnimation(const std::shared_ptr<const ObjectTemplate> info)
 {
 	if(info->animationFile.empty())
 	{
@@ -285,7 +285,7 @@ std::shared_ptr<Animation> Graphics::getHeroAnimation(const std::shared_ptr<cons
 	return ret;
 }
 
-std::shared_ptr<Animation> Graphics::getAnimation(const std::shared_ptr<const ObjectTemplate> info)
+std::shared_ptr<Animation> GraphicsEditor::getAnimation(const std::shared_ptr<const ObjectTemplate> info)
 {	
 	if(info->animationFile.empty())
 	{
@@ -309,7 +309,7 @@ std::shared_ptr<Animation> Graphics::getAnimation(const std::shared_ptr<const Ob
 	return ret;
 }
 
-void Graphics::addImageListEntry(size_t index, size_t group, const std::string & listName, const std::string & imageName)
+void GraphicsEditor::addImageListEntry(size_t index, size_t group, const std::string & listName, const std::string & imageName)
 {
 	if (!imageName.empty())
 	{
@@ -323,9 +323,9 @@ void Graphics::addImageListEntry(size_t index, size_t group, const std::string &
 	}
 }
 
-void Graphics::addImageListEntries(const EntityService * service)
+void GraphicsEditor::addImageListEntries(const EntityService * service)
 {
-	auto cb = std::bind(&Graphics::addImageListEntry, this, _1, _2, _3, _4);
+	auto cb = std::bind(&GraphicsEditor::addImageListEntry, this, _1, _2, _3, _4);
 	
 	auto loopCb = [&](const Entity * entity, bool & stop)
 	{
@@ -335,7 +335,7 @@ void Graphics::addImageListEntries(const EntityService * service)
 	service->forEachBase(loopCb);
 }
 
-void Graphics::initializeImageLists()
+void GraphicsEditor::initializeImageLists()
 {
 	addImageListEntries(VLC->creatures());
 	addImageListEntries(VLC->heroTypes());
