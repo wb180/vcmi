@@ -105,7 +105,7 @@ void MapTileStorage::load(size_t index, const AnimationPath & filename, EImageBl
 	for(auto & entry : terrainAnimations)
 	{
 		if (!filename.empty())
-			entry = GH.renderHandler().loadAnimation(filename, blitMode);
+			entry = getHandler().loadAnimation(filename, blitMode);
 	}
 
 	if (terrainAnimations[1])
@@ -130,12 +130,24 @@ std::shared_ptr<IImage> MapTileStorage::find(size_t fileIndex, size_t rotationIn
 		return nullptr;
 }
 
-MapRendererTerrain::MapRendererTerrain()
-	: storage(VLC->terrainTypeHandler->objects.size())
+IRenderHandler & MapTileStorage::getHandler() const
 {
+	return GH.renderHandler();
+}
+
+MapRendererTerrain::MapRendererTerrain()
+{
+
+}
+
+void MapRendererTerrain::init()
+{
+	if(!storage)
+		storage = std::make_shared<MapTileStorage>(VLC->terrainTypeHandler->objects.size());
+
 	logGlobal->debug("Loading map terrains");
 	for(const auto & terrain : VLC->terrainTypeHandler->objects)
-		storage.load(terrain->getIndex(), terrain->tilesFilename, EImageBlitMode::OPAQUE);
+		storage->load(terrain->getIndex(), terrain->tilesFilename, EImageBlitMode::OPAQUE);
 	logGlobal->debug("Done loading map terrains");
 }
 
@@ -147,7 +159,7 @@ void MapRendererTerrain::renderTile(IMapRendererContext & context, Canvas & targ
 	int32_t imageIndex = mapTile.terView;
 	int32_t rotationIndex = mapTile.extTileFlags % 4;
 
-	const auto & image = storage.find(terrainIndex, rotationIndex, imageIndex);
+	const auto & image = storage->find(terrainIndex, rotationIndex, imageIndex);
 
 	assert(image);
 	if (!image)
@@ -172,11 +184,18 @@ uint8_t MapRendererTerrain::checksum(IMapRendererContext & context, const int3 &
 }
 
 MapRendererRiver::MapRendererRiver()
-	: storage(VLC->riverTypeHandler->objects.size())
 {
+
+}
+
+void MapRendererRiver::init()
+{
+	if(!storage)
+		storage = std::make_shared<MapTileStorage>(VLC->riverTypeHandler->objects.size());
+
 	logGlobal->debug("Loading map rivers");
 	for(const auto & river : VLC->riverTypeHandler->objects)
-		storage.load(river->getIndex(), river->tilesFilename, EImageBlitMode::COLORKEY);
+		storage->load(river->getIndex(), river->tilesFilename, EImageBlitMode::COLORKEY);
 	logGlobal->debug("Done loading map rivers");
 }
 
@@ -191,7 +210,7 @@ void MapRendererRiver::renderTile(IMapRendererContext & context, Canvas & target
 	int32_t imageIndex = mapTile.riverDir;
 	int32_t rotationIndex = (mapTile.extTileFlags >> 2) % 4;
 
-	const auto & image = storage.find(terrainIndex, rotationIndex, imageIndex);
+	const auto & image = storage->find(terrainIndex, rotationIndex, imageIndex);
 
 	for( auto const & element : mapTile.riverType->paletteAnimation)
 		image->shiftPalette(element.start, element.length, context.terrainImageIndex(element.length));
@@ -209,11 +228,18 @@ uint8_t MapRendererRiver::checksum(IMapRendererContext & context, const int3 & c
 }
 
 MapRendererRoad::MapRendererRoad()
-	: storage(VLC->roadTypeHandler->objects.size())
 {
+
+}
+
+void MapRendererRoad::init()
+{
+	if(!storage)
+		storage = std::make_shared<MapTileStorage>(VLC->roadTypeHandler->objects.size());
+
 	logGlobal->debug("Loading map roads");
 	for(const auto & road : VLC->roadTypeHandler->objects)
-		storage.load(road->getIndex(), road->tilesFilename, EImageBlitMode::COLORKEY);
+		storage->load(road->getIndex(), road->tilesFilename, EImageBlitMode::COLORKEY);
 	logGlobal->debug("Done loading map roads");
 }
 
@@ -230,7 +256,7 @@ void MapRendererRoad::renderTile(IMapRendererContext & context, Canvas & target,
 			int32_t imageIndex = mapTileAbove.roadDir;
 			int32_t rotationIndex = (mapTileAbove.extTileFlags >> 4) % 4;
 
-			const auto & image = storage.find(terrainIndex, rotationIndex, imageIndex);
+			const auto & image = storage->find(terrainIndex, rotationIndex, imageIndex);
 			target.draw(image, Point(0, 0), Rect(0, 16, 32, 16));
 		}
 	}
@@ -242,7 +268,7 @@ void MapRendererRoad::renderTile(IMapRendererContext & context, Canvas & target,
 		int32_t imageIndex = mapTile.roadDir;
 		int32_t rotationIndex = (mapTile.extTileFlags >> 4) % 4;
 
-		const auto & image = storage.find(terrainIndex, rotationIndex, imageIndex);
+		const auto & image = storage->find(terrainIndex, rotationIndex, imageIndex);
 		target.draw(image, Point(0, 16), Rect(0, 0, 32, 16));
 	}
 }
@@ -733,6 +759,13 @@ size_t MapRendererPath::selectImage(IMapRendererContext & context, const int3 & 
 uint8_t MapRendererPath::checksum(IMapRendererContext & context, const int3 & coordinates)
 {
 	return selectImage(context, coordinates) & 0xff;
+}
+
+MapRenderer::MapRenderer()
+{
+	rendererTerrain.init();
+	rendererRiver.init();
+	rendererRoad.init();
 }
 
 MapRenderer::TileChecksum MapRenderer::getTileChecksum(IMapRendererContext & context, const int3 & coordinates)

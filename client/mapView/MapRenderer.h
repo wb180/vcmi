@@ -35,14 +35,19 @@ public:
 	explicit MapTileStorage(size_t capacity);
 	void load(size_t index, const AnimationPath & filename, EImageBlitMode blitMode);
 	std::shared_ptr<IImage> find(size_t fileIndex, size_t rotationIndex, size_t imageIndex);
+
+	virtual IRenderHandler & getHandler() const;
 };
 
 class MapRendererTerrain
 {
-	MapTileStorage storage;
+protected:
+	std::shared_ptr<MapTileStorage> storage = nullptr;
 
 public:
 	MapRendererTerrain();
+
+	virtual void init();
 
 	uint8_t checksum(IMapRendererContext & context, const int3 & coordinates);
 	void renderTile(IMapRendererContext & context, Canvas & target, const int3 & coordinates);
@@ -50,10 +55,13 @@ public:
 
 class MapRendererRiver
 {
-	MapTileStorage storage;
+protected:
+	std::shared_ptr<MapTileStorage> storage = nullptr;
 
 public:
 	MapRendererRiver();
+
+	virtual void init();
 
 	uint8_t checksum(IMapRendererContext & context, const int3 & coordinates);
 	void renderTile(IMapRendererContext & context, Canvas & target, const int3 & coordinates);
@@ -61,10 +69,13 @@ public:
 
 class MapRendererRoad
 {
-	MapTileStorage storage;
+protected:
+	std::shared_ptr<MapTileStorage> storage = nullptr;
 
 public:
 	MapRendererRoad();
+
+	virtual void init();
 
 	uint8_t checksum(IMapRendererContext & context, const int3 & coordinates);
 	void renderTile(IMapRendererContext & context, Canvas & target, const int3 & coordinates);
@@ -157,6 +168,8 @@ class MapRenderer
 	MapRendererOverlay rendererOverlay;
 
 public:
+	MapRenderer();
+
 	using TileChecksum = std::array<uint8_t, 8>;
 
 	TileChecksum getTileChecksum(IMapRendererContext & context, const int3 & coordinates);

@@ -37,3 +37,9 @@ bool MapEditorContext::showBlocked() const
 {
 	return true;
 }
+
+
+const TerrainTile & MapEditorContext::getMapTile(const int3 & coordinates) const
+{
+	return viewState.getMap()->getTile(coordinates);
+}

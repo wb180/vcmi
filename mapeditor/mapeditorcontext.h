@@ -15,4 +15,5 @@ public:
 	bool showGrid() const override;
 	bool showVisitable() const override;
 	bool showBlocked() const override;
+	const TerrainTile & getMapTile(const int3 & coordinates) const override;
 };

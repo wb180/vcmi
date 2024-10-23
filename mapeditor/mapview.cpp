@@ -759,6 +759,7 @@ MapScene::MapScene(int lvl):
 	state(MapRendererContextStateExt::createRendererContextState(map)),
 	context(*state)
 {
+	rendererTerrain.init();
 	connect(&selectionTerrainView, &SelectionTerrainLayer::selectionMade, this, &MapScene::terrainSelected);
 	connect(&selectionObjectsView, &SelectionObjectsLayer::selectionMade, this, &MapScene::objectSelected);
 }
@@ -794,6 +795,7 @@ void MapScene::updateViews()
 		for(int i = 0; i < map->width; ++i)
 		{
 			auto tileCanvas = Canvas(canvas, Rect(i * TILE_SIZE, j * TILE_SIZE, TILE_SIZE, TILE_SIZE));
+			rendererTerrain.renderTile(context, tileCanvas, int3(i, j, level));
 			rendererOverlay.renderTile(context, tileCanvas, int3(i, j, level));
 		}
 	}	

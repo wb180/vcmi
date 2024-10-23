@@ -18,6 +18,7 @@
 
 #include "mapeditorcontext.h"
 #include "maprendercontextstate.h"
+#include "renderhandler.h"
 
 #include "../client/render/Canvas.h"
 
@@ -81,6 +82,7 @@ public:
 	ObjectPickerLayer objectPickerView;
 
 	MapRendererOverlay rendererOverlay;
+	MapRendererTerrainExt rendererTerrain;
 
 	MapRendererContextStateExt * state;
 	MapEditorContext context;	

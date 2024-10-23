@@ -186,8 +186,6 @@ MainWindow::MainWindow(QWidget* parent) :
 	//init
 	preinitDLL(::console, extractionOptions.extractArchives);
 
-	controller = std::make_unique<MapController>(this);
-
 	// Initialize logging based on settings
 	logConfig->configure();
 	logGlobal->debug("settings = %s", settings.toJsonNode().toString());
@@ -245,6 +243,8 @@ MainWindow::MainWindow(QWidget* parent) :
 	setTitle();
 
 	init();
+
+	controller = std::make_unique<MapController>(this);
 
 	graphicsEditor = new GraphicsEditor(); // should be before curh->init()
 	graphicsEditor->load();//must be after Content loading but should be in main thread
